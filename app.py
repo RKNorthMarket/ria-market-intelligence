@@ -4,13 +4,11 @@ import os
 
 from core.scoring import score_job
 
-
-DATA_PATH = "data/jobs.csv"
-
-
 # =========================================================
 # CONFIG
 # =========================================================
+
+DATA_PATH = "data/jobs.csv"
 
 st.set_page_config(
     page_title="RIA Executive OS — Intelligence Dashboard",
@@ -22,84 +20,121 @@ st.title("🧠 RIA Executive OS — Market Intelligence Engine")
 st.write("""
 Pipeline-driven architecture:
 
-✔ Offline job ingestion (pipeline)  
-✔ CSV-based persistence  
-✔ Deterministic scoring engine  
-✔ Stable Streamlit dashboard  
+✔ Offline job ingestion  
+✔ Scoring engine (RIA OS-aligned)  
+✔ Intelligence dashboard for executive targeting
 """)
 
 # =========================================================
-# LOAD DATA FROM PIPELINE
+# LOAD DATA
 # =========================================================
 
-@st.cache_data(ttl=60)
-def load_jobs():
+if not os.path.exists(DATA_PATH):
+    st.error(f"Missing data file: {DATA_PATH}")
+    st.stop()
 
-    if not os.path.exists(DATA_PATH):
-        return pd.DataFrame()
+df = pd.read_csv(DATA_PATH)
 
-    return pd.read_csv(DATA_PATH)
+required_cols = ["title", "company"]
 
-
-df = load_jobs()
-
-st.subheader("📡 Pipeline Job Feed")
-
-if df.empty:
-    st.warning("No pipeline data found. Run: python indexer/pipeline.py")
+missing = [c for c in required_cols if c not in df.columns]
+if missing:
+    st.error(f"Missing required columns: {missing}")
     st.stop()
 
 # =========================================================
-# SCORING
+# SCORE DATA
 # =========================================================
 
-def score_row(row):
-
-    return score_job(type("Job", (), {
-        "title": row.get("title", ""),
-        "company": row.get("company", "")
-    }))
-
-
-df["score"] = df.apply(score_row, axis=1)
-
+df["score"] = df.apply(score_job, axis=1)
 df = df.sort_values("score", ascending=False)
 
 # =========================================================
-# METRICS
+# SIDEBAR FILTERS
 # =========================================================
 
-st.subheader("📊 Metrics")
+st.sidebar.header("Filters")
+
+min_score = st.sidebar.slider(
+    "Minimum Fit Score",
+    0, 100, 50
+)
+
+companies = st.sidebar.multiselect(
+    "Company",
+    options=sorted(df["company"].dropna().unique())
+)
+
+title_search = st.sidebar.text_input("Search Job Title")
+
+# Apply filters
+filtered = df[df["score"] >= min_score]
+
+if companies:
+    filtered = filtered[filtered["company"].isin(companies)]
+
+if title_search:
+    filtered = filtered[
+        filtered["title"].str.contains(title_search, case=False, na=False)
+    ]
+
+# =========================================================
+# EXECUTIVE SNAPSHOT
+# =========================================================
+
+st.subheader("📊 Market Snapshot")
 
 col1, col2, col3 = st.columns(3)
 
 col1.metric("Total Jobs", len(df))
-col2.metric("Top Score", int(df["score"].max()))
-col3.metric("Avg Score", int(df["score"].mean()))
+col2.metric("Filtered Jobs", len(filtered))
+col3.metric(
+    "Avg Fit Score",
+    round(filtered["score"].mean(), 1) if len(filtered) else 0
+)
 
 # =========================================================
-# TOP JOBS
+# TOP OPPORTUNITIES
 # =========================================================
 
-st.subheader("🎯 Ranked Opportunities")
+st.subheader("🔥 Top Opportunities")
 
-for _, row in df.head(50).iterrows():
+top_n = st.slider("Show Top N Jobs", 5, 50, 15)
 
-    st.markdown(f"### {row['title']}")
-    st.write(f"🏢 {row['company']} | {row.get('source','')}")
-    st.write(f"🔗 {row.get('url','')}")
-    st.write(f"🎯 Score: {row['score']} / 100")
-
-    st.divider()
+st.dataframe(
+    filtered.head(top_n)[["title", "company", "score"]],
+    use_container_width=True
+)
 
 # =========================================================
-# COMPANY BREAKDOWN
+# JOB DETAIL EXPLORER
 # =========================================================
 
-st.subheader("🏢 Firm Activity")
+st.subheader("🔎 Job Explorer")
 
-if "company" in df.columns:
+if len(filtered) > 0:
 
-    firm_counts = df["company"].value_counts().head(15)
+    selected_idx = st.selectbox(
+        "Select Job",
+        options=filtered.index,
+        format_func=lambda i: f"{filtered.loc[i, 'title']} — {filtered.loc[i, 'company']}"
+    )
 
-    st.bar_chart(firm_counts)
+    job = filtered.loc[selected_idx]
+
+    st.markdown(f"""
+    ## {job['title']}
+    **Company:** {job['company']}  
+    **Score:** {job['score']}
+    """)
+
+    if "location" in job:
+        st.write("**Location:**", job.get("location"))
+
+    if "description" in job:
+        st.write("**Description:**", job.get("description"))
+
+    if "url" in job:
+        st.write("**URL:**", job.get("url"))
+else:
+    st.warning("No jobs match your filters.")
