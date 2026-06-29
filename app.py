@@ -126,8 +126,29 @@ st.divider()
 
 st.subheader("Executive Opportunity Pipeline")
 
-cols=["title","company","location","status","priority","fit_score"]
-st.dataframe(filtered[cols].sort_values("fit_score",ascending=False),use_container_width=True)
+display_columns = [
+    "company",
+    "title",
+    "status",
+    "priority",
+    "fit_score",
+    "next_step",
+    "last_activity"
+]
+
+display_df = (
+    filtered[display_columns]
+    .sort_values(
+        by=["fit_score", "company"],
+        ascending=[False, True]
+    )
+)
+
+st.dataframe(
+    display_df,
+    use_container_width=True,
+    hide_index=True
+)
 
 st.divider()
 
