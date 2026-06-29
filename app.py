@@ -60,17 +60,67 @@ if search:
         filtered["company"].str.lower().str.contains(s)
     ]
 
-# ---------- Metrics ----------
-active = len(filtered[~filtered["status"].isin(["Rejected","Closed"])])
-interviewing = len(filtered[filtered["status"].str.contains("Interview", case=False)])
-applied = len(filtered[filtered["status"]=="Applied"])
-avg_fit = round(filtered["fit_score"].mean(),1) if len(filtered) else 0
+# ---------- Executive Dashboard ----------
 
-c1,c2,c3,c4 = st.columns(4)
-c1.metric("Visible Opportunities",len(filtered))
-c2.metric("Interviewing",interviewing)
-c3.metric("Applied",applied)
-c4.metric("Avg Fit",avg_fit)
+active_jobs = filtered[
+    ~filtered["status"].isin(["Closed"])
+]
+
+active_count = len(active_jobs)
+
+applied_count = len(
+    active_jobs[
+        active_jobs["status"] == "Applied"
+    ]
+)
+
+interview_count = len(
+    active_jobs[
+        active_jobs["status"].str.contains(
+            "Interview",
+            case=False,
+            na=False
+        )
+    ]
+)
+
+referral_count = len(
+    active_jobs[
+        active_jobs["status"] == "Referred"
+    ]
+)
+
+avg_fit = (
+    round(active_jobs["fit_score"].mean(), 1)
+    if active_count > 0 else 0
+)
+
+c1, c2, c3, c4, c5 = st.columns(5)
+
+c1.metric(
+    "Active Opportunities",
+    active_count
+)
+
+c2.metric(
+    "Applied",
+    applied_count
+)
+
+c3.metric(
+    "Interviewing",
+    interview_count
+)
+
+c4.metric(
+    "Referrals",
+    referral_count
+)
+
+c5.metric(
+    "Avg Fit",
+    avg_fit
+)
 
 st.divider()
 
