@@ -193,4 +193,100 @@ with right:
         st.metric("Salary Range","N/A")
 
 st.divider()
+st.divider()
+
+st.header("🧠 Executive Opportunity Workspace")
+
+st.markdown("### Select an Opportunity")
+
+selected_idx = st.selectbox(
+    "Choose an opportunity",
+    filtered.index,
+    format_func=lambda i: f"{filtered.loc[i,'company']} — {filtered.loc[i,'title']}"
+)
+
+selected = filtered.loc[selected_idx]
+
+st.divider()
+
+# ---------- Executive Summary ----------
+st.subheader("Executive Summary")
+
+c1, c2, c3, c4 = st.columns(4)
+
+c1.metric("Company", selected["company"])
+c2.metric("Status", selected["status"])
+c3.metric("Priority", selected["priority"])
+c4.metric("Fit Score", int(selected["fit_score"]))
+
+st.write(f"**Location:** {selected['location']}")
+st.write(f"**Employment Type:** {selected['employment_type']}")
+st.write(f"**Salary Range:** ${selected['salary_min']:,} - ${selected['salary_max']:,}" if selected["salary_max"] else "Salary: N/A")
+
+st.markdown(f"**Next Step:** {selected['next_step']}")
+st.markdown(f"**Last Activity:** {selected['last_activity']}")
+
+if selected["job_url"]:
+    st.markdown(f"[🔗 Open Job Posting]({selected['job_url']})")
+
+st.divider()
+
+# ---------- Strategic Assessment ----------
+st.subheader("🧭 Strategic Assessment")
+
+fit = int(selected["fit_score"])
+
+if fit >= 95:
+    st.success("Exceptional strategic fit — prioritize aggressively.")
+elif fit >= 90:
+    st.info("Strong fit — high priority opportunity.")
+elif fit >= 85:
+    st.warning("Moderate fit — pursue selectively.")
+else:
+    st.error("Lower fit — consider deprioritizing.")
+
+st.divider()
+
+# ---------- Tabs ----------
+tab1, tab2, tab3 = st.tabs([
+    "🎯 Interview Preparation",
+    "📅 Follow-Up Planner",
+    "📁 Documents"
+])
+
+# ---------- Interview Prep ----------
+with tab1:
+    st.subheader("Interview Preparation")
+
+    st.text_area(
+        "Key talking points",
+        placeholder="e.g. RIA operations leadership, advisor enablement, scaling service models..."
+    )
+
+    st.text_area(
+        "Questions to ask",
+        placeholder="e.g. How is success measured in the first 90 days?"
+    )
+
+    st.text_area(
+        "Interview notes",
+        placeholder="Capture insights from recruiter / hiring manager conversations"
+    )
+
+# ---------- Follow-Up ----------
+with tab2:
+    st.subheader("Follow-Up Planner")
+
+    st.date_input("Next follow-up date")
+    st.text_area("Follow-up message / action")
+    st.checkbox("Mark follow-up completed")
+
+# ---------- Documents ----------
+with tab3:
+    st.subheader("Documents")
+
+    st.text_input("Resume version used")
+    st.text_area("Cover letter notes")
+    st.text_area("Thank-you email draft")
+    st.text_area("Additional notes")
 st.caption("RIA Executive OS • Version 1.0")
