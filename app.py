@@ -125,7 +125,30 @@ c5.metric(
 st.divider()
 
 st.subheader("Executive Opportunity Pipeline")
+st.divider()
 
+st.subheader("🚀 Executive Action Center")
+
+action_col1, action_col2 = st.columns(2)
+
+with action_col1:
+
+    st.markdown("### Immediate Next Action")
+
+    st.info(selected["next_step"])
+
+    st.markdown("### Last Activity")
+
+    st.write(selected["last_activity"])
+
+with action_col2:
+
+    st.markdown("### Opportunity Summary")
+
+    st.write(f"**Company:** {selected['company']}")
+    st.write(f"**Role:** {selected['title']}")
+    st.write(f"**Current Status:** {selected['status']}")
+    st.write(f"**Priority:** {selected['priority']}")
 display_columns = [
     "company",
     "title",
