@@ -188,7 +188,7 @@ idx = st.selectbox(
 )
 
 job = filtered.loc[idx]
-
+selected = job
 left,right = st.columns([2,1])
 
 with left:
