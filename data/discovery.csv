@@ -1,0 +1,2 @@
+discovery_id,title,company,location,employment_type,salary_min,salary_max,posting_date,job_url,source,fit_score,priority,recommendation,status,notes
+1,Director Client Service Operations,Example Wealth Firm,Dallas TX,Full-Time,160000,210000,2026-07-08,https://example.com,Manual,90,High,Review,New,"Placeholder discovery role. Replace with a real opportunity."
