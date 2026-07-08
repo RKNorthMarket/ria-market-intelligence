@@ -1,10 +1,11 @@
 import json
 import os
 
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROFILE_PATH = os.path.join(BASE_DIR, "data", "profile.json")
 RESUME_PROFILE_PATH = os.path.join(BASE_DIR, "data", "resume_profile.json")
+
+DISCOVERY_ENGINE_VERSION = "v3_resume_signal_engine"
 
 
 def load_json(path):
@@ -20,166 +21,95 @@ def load_resume_profile():
     return load_json(RESUME_PROFILE_PATH)
 
 
-def _contains_any(text, terms):
-    matches = []
-    text_lower = text.lower()
-
-    for term in terms:
-        if term.lower() in text_lower:
-            matches.append(term)
-
-    return matches
+def contains_terms(text, terms):
+    text = text.lower()
+    return [term for term in terms if term.lower() in text]
 
 
 def score_discovered_role(title, description, location="", salary_min=0):
     search_profile = load_profile()
     resume_profile = load_resume_profile()
 
+    text = f"{title} {description}".lower()
+    location_text = str(location).lower()
+
     score = 0
     reasons = []
     strengths = []
     concerns = []
 
-    combined_text = f"{title} {description}".lower()
-    location_text = str(location).lower()
+    signal_groups = {
+        "Executive / Leadership Scope": [
+            "director", "head", "vice president", "vp", "coo", "chief",
+            "executive", "lead", "leader", "leadership", "manage",
+            "manager", "oversight", "strategy", "strategic"
+        ],
+        "Operations Leadership": [
+            "operations", "operational", "process", "workflow",
+            "service model", "efficiency", "execution", "transformation",
+            "scaling", "scale", "operating model"
+        ],
+        "Client Service / Client Experience": [
+            "client service", "client experience", "client success",
+            "client solutions", "service delivery", "relationship management",
+            "client operations"
+        ],
+        "Advisor / RIA / Wealth Management": [
+            "wealth", "wealth management", "ria", "registered investment advisor",
+            "advisor", "adviser", "private wealth", "family office",
+            "asset management", "custody", "custodian", "broker dealer",
+            "trust company"
+        ],
+        "Platform / Technology / Enablement": [
+            "platform", "crm", "salesforce", "hubspot", "technology",
+            "automation", "reporting", "dashboard", "data",
+            "advisor enablement", "practice management"
+        ],
+        "Build / Improve / Transform": [
+            "build", "built", "develop", "launch", "create", "improve",
+            "modernize", "redesign", "optimize", "transform",
+            "change management"
+        ]
+    }
 
-    # --------------------------------------------------
-    # Search profile title alignment
-    # --------------------------------------------------
-    title_matches = _contains_any(
-        combined_text,
-        search_profile.get("target_titles", [])
-    )
+    weights = {
+        "Executive / Leadership Scope": 18,
+        "Operations Leadership": 20,
+        "Client Service / Client Experience": 18,
+        "Advisor / RIA / Wealth Management": 22,
+        "Platform / Technology / Enablement": 12,
+        "Build / Improve / Transform": 10
+    }
 
+    for group, terms in signal_groups.items():
+        matches = contains_terms(text, terms)
+        if matches:
+            score += weights[group]
+            strengths.append(f"{group}: {', '.join(matches[:5])}")
+
+    title_matches = contains_terms(text, search_profile.get("target_titles", []))
     if title_matches:
-        score += min(25, len(title_matches) * 10)
-        for match in title_matches[:3]:
-            reasons.append(f"Target title alignment: {match}")
+        score += 15
+        reasons.append(f"Target title match: {', '.join(title_matches[:3])}")
 
-    # --------------------------------------------------
-    # Industry alignment
-    # --------------------------------------------------
-    industry_matches = _contains_any(
-        combined_text,
-        search_profile.get("target_industries", [])
-    )
+    positive_matches = contains_terms(text, search_profile.get("positive_keywords", []))
+    if positive_matches:
+        score += min(15, len(positive_matches) * 3)
+        reasons.append(f"Positive search signals: {', '.join(positive_matches[:6])}")
 
-    if industry_matches:
-        score += min(25, len(industry_matches) * 8)
-        for match in industry_matches[:4]:
-            reasons.append(f"Industry alignment: {match}")
+    resume_matches = contains_terms(text, resume_profile.get("core_strengths", []))
+    if resume_matches:
+        score += min(15, len(resume_matches) * 4)
+        strengths.append(f"Resume strength alignment: {', '.join(resume_matches[:5])}")
 
-    # --------------------------------------------------
-    # Positive keyword alignment
-    # --------------------------------------------------
-    keyword_matches = _contains_any(
-        combined_text,
-        search_profile.get("positive_keywords", [])
-    )
-
-    if keyword_matches:
-        score += min(25, len(keyword_matches) * 3)
-        for match in keyword_matches[:6]:
-            reasons.append(f"Search keyword match: {match}")
-
-    # --------------------------------------------------
-    # Resume strength alignment
-    # --------------------------------------------------
-    resume_strength_matches = _contains_any(
-        combined_text,
-        resume_profile.get("core_strengths", [])
-    )
-
-    if resume_strength_matches:
-        score += min(30, len(resume_strength_matches) * 5)
-        for match in resume_strength_matches[:6]:
-            strengths.append(f"Resume strength alignment: {match}")
-
-    # --------------------------------------------------
-    # Industry experience alignment from resume
-    # --------------------------------------------------
-    resume_industry_matches = _contains_any(
-        combined_text,
-        resume_profile.get("industries", [])
-    )
-
-    if resume_industry_matches:
-        score += min(20, len(resume_industry_matches) * 5)
-        for match in resume_industry_matches[:4]:
-            strengths.append(f"Relevant industry background: {match}")
-
-    # --------------------------------------------------
-    # Leadership / executive scope
-    # --------------------------------------------------
-    leadership_terms = [
-        "lead",
-        "leader",
-        "leadership",
-        "executive",
-        "manage",
-        "manager",
-        "director",
-        "head",
-        "vp",
-        "vice president",
-        "coo",
-        "strategy",
-        "transformation",
-        "scale",
-        "scaling"
-    ]
-
-    leadership_matches = _contains_any(combined_text, leadership_terms)
-
-    if leadership_matches:
-        score += min(20, len(leadership_matches) * 3)
-        strengths.append(
-            "Role appears to include leadership, transformation, or scaling scope."
-        )
-
-    # --------------------------------------------------
-    # Accomplishment-based alignment
-    # --------------------------------------------------
-    accomplishment_signals = [
-        "build",
-        "built",
-        "scale",
-        "scaled",
-        "improve",
-        "improvement",
-        "workflow",
-        "technology",
-        "crm",
-        "service model",
-        "advisor",
-        "client experience",
-        "operational efficiency",
-        "transformation"
-    ]
-
-    accomplishment_matches = _contains_any(combined_text, accomplishment_signals)
-
-    if accomplishment_matches:
-        score += min(20, len(accomplishment_matches) * 3)
-        strengths.append(
-            "Role appears to align with prior accomplishments in scaling, workflow improvement, technology implementation, or service transformation."
-        )
-
-    # --------------------------------------------------
-    # Location alignment
-    # --------------------------------------------------
-    location_matches = _contains_any(
+    location_matches = contains_terms(
         location_text,
         search_profile.get("preferred_locations", [])
     )
-
     if location_matches:
-        score += 10
+        score += 8
         reasons.append(f"Preferred location match: {location_matches[0]}")
 
-    # --------------------------------------------------
-    # Salary alignment
-    # --------------------------------------------------
     try:
         salary_min = int(salary_min)
     except Exception:
@@ -189,89 +119,52 @@ def score_discovered_role(title, description, location="", salary_min=0):
     target_base = int(search_profile.get("target_base_salary", 175000))
 
     if salary_min >= target_base:
-        score += 15
+        score += 12
         reasons.append("Salary meets or exceeds target base threshold.")
     elif salary_min >= minimum_base:
-        score += 8
+        score += 7
         reasons.append("Salary meets minimum base threshold.")
     elif salary_min > 0:
         score -= 10
-        concerns.append("Salary appears below your stated minimum threshold.")
+        concerns.append("Salary appears below your minimum threshold.")
 
-    # --------------------------------------------------
-    # Negative signals
-    # --------------------------------------------------
-    negative_matches = _contains_any(
-        combined_text,
-        search_profile.get("negative_keywords", [])
-    )
-
+    negative_matches = contains_terms(text, search_profile.get("negative_keywords", []))
     if negative_matches:
-        score -= min(40, len(negative_matches) * 15)
-        for match in negative_matches[:5]:
-            concerns.append(f"Negative role signal: {match}")
+        score -= min(35, len(negative_matches) * 12)
+        concerns.append(f"Negative signals: {', '.join(negative_matches[:5])}")
 
-    # --------------------------------------------------
-    # Advisor / producer caution
-    # --------------------------------------------------
     producer_terms = [
-        "book of business",
-        "sales quota",
-        "production",
-        "producer",
-        "financial advisor",
-        "wealth advisor",
-        "build your book"
+        "book of business", "sales quota", "producer",
+        "financial advisor", "wealth advisor", "build your book"
     ]
 
-    producer_matches = _contains_any(combined_text, producer_terms)
-
+    producer_matches = contains_terms(text, producer_terms)
     if producer_matches:
         score -= 30
-        concerns.append(
-            "Role may be production-oriented rather than operations/client service leadership."
-        )
+        concerns.append("Role may be production/sales-oriented rather than operations leadership.")
 
-    # --------------------------------------------------
-    # Normalize
-    # --------------------------------------------------
     score = max(0, min(score, 100))
 
     if score >= 90:
         priority = "High"
         recommendation = "Review"
+        executive_summary = "Strong executive fit based on leadership, operations, wealth management, client service, and transformation alignment."
     elif score >= 75:
         priority = "Medium"
         recommendation = "Review"
+        executive_summary = "Potential fit. Review for compensation, authority, leadership scope, and company quality."
     else:
         priority = "Low"
         recommendation = "Deprioritize"
-
-    # --------------------------------------------------
-    # Executive summary
-    # --------------------------------------------------
-    if score >= 90:
-        executive_summary = (
-            "Strong executive fit based on alignment with your wealth management, "
-            "operations leadership, client service, advisor enablement, and transformation background."
-        )
-    elif score >= 75:
-        executive_summary = (
-            "Potential fit. The role shows some alignment with your background, "
-            "but should be reviewed for compensation, authority, and strategic scope."
-        )
-    else:
-        executive_summary = (
-            "Lower-priority fit based on the current profile and role description. "
-            "Review only if there is a strategic reason not captured in the posting."
-        )
+        executive_summary = "Lower-priority fit based on the current role description and search profile."
 
     return {
+        "engine_version": DISCOVERY_ENGINE_VERSION,
         "fit_score": score,
         "priority": priority,
         "recommendation": recommendation,
         "reasons": reasons,
         "strengths": strengths,
         "concerns": concerns,
-        "executive_summary": executive_summary,
+        "executive_summary": executive_summary
     }
