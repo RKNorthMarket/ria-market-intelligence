@@ -1,0 +1,80 @@
+{
+  "target_titles": [
+    "Head of Operations",
+    "Director of Operations",
+    "Director of Client Service",
+    "Director of Client Experience",
+    "VP Operations",
+    "VP Client Service",
+    "VP Wealth Management Operations",
+    "Head of Wealth Platform",
+    "COO",
+    "Practice Management Leader"
+  ],
+  "target_industries": [
+    "Wealth Management",
+    "RIA",
+    "Private Wealth",
+    "Family Office",
+    "Asset Management",
+    "Trust Company",
+    "Broker Dealer",
+    "WealthTech",
+    "Custody",
+    "Advisor Platform"
+  ],
+  "preferred_locations": [
+    "Dallas TX",
+    "Fort Worth TX",
+    "Remote",
+    "Chicago IL",
+    "Boston MA",
+    "Charlotte NC",
+    "Nashville TN",
+    "Tampa FL",
+    "Cincinnati OH",
+    "Salt Lake City UT",
+    "Madison WI"
+  ],
+  "minimum_base_salary": 150000,
+  "target_base_salary": 175000,
+  "stretch_base_salary": 250000,
+  "positive_keywords": [
+    "wealth management",
+    "RIA",
+    "client service",
+    "operations",
+    "advisor experience",
+    "platform",
+    "practice management",
+    "service delivery",
+    "onboarding",
+    "operational excellence",
+    "advisor enablement",
+    "client experience",
+    "business transformation",
+    "COO",
+    "executive leadership",
+    "workflow",
+    "scaling",
+    "process improvement",
+    "service model"
+  ],
+  "negative_keywords": [
+    "CFP required",
+    "financial advisor",
+    "producer",
+    "sales quota",
+    "book of business",
+    "branch manager",
+    "retail banking",
+    "entry level",
+    "associate"
+  ],
+  "must_avoid": [
+    "Requires CFP certification",
+    "Primarily a sales or production role",
+    "Clearly below compensation threshold",
+    "Not connected to wealth management or financial services"
+  ]
+}
